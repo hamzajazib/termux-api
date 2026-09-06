@@ -81,14 +81,25 @@ public class DialogAPI {
         private volatile boolean resultReturned = false;
         private InputMethod mInputMethod;
 
+        /**
+         * If activity was restarted.
+         */
+        private boolean mIsActivityRecreated = false;
+
+        private static final String ARG_ACTIVITY_RECREATED = "activity_recreated";
+
         @Override
         protected void onCreate(Bundle savedInstanceState) {
             Logger.logDebug(LOG_TAG, "onCreate");
-
             super.onCreate(savedInstanceState);
+
+            if (savedInstanceState != null)
+                mIsActivityRecreated = savedInstanceState.getBoolean(ARG_ACTIVITY_RECREATED, false);
+            if (mIsActivityRecreated)
+                return;
+
             final Intent intent = getIntent();
             final Context context = this;
-
 
             String methodType = intent.hasExtra("input_method") ? intent.getStringExtra("input_method") : "";
 
@@ -125,12 +136,26 @@ public class DialogAPI {
 
             super.onDestroy();
 
-            postResult(this, null);
+            if (!mIsActivityRecreated) {
+                postResult(this, null);
 
-            if (mInputMethod != null) {
-                Dialog dialog = mInputMethod.getDialog();
-                dismissDialog(dialog);
+                if (mInputMethod != null) {
+                    Dialog dialog = mInputMethod.getDialog();
+                    dismissDialog(dialog);
+                }
             }
+
+            if (!isFinishing()) {
+                finish();
+            }
+        }
+
+        @Override
+        public void onSaveInstanceState(@NonNull Bundle savedInstanceState) {
+            Logger.logVerbose(LOG_TAG, "onSaveInstanceState");
+
+            super.onSaveInstanceState(savedInstanceState);
+            savedInstanceState.putBoolean(ARG_ACTIVITY_RECREATED, true);
         }
 
         private static void dismissDialog(Dialog dialog) {
@@ -170,6 +195,7 @@ public class DialogAPI {
                 return;
             } else {
                 Logger.logDebug(LOG_TAG, "postResult");
+                resultReturned = true;
             }
 
             ResultReturner.returnData(context, getIntent(), new ResultReturner.ResultJsonWriter() {
@@ -206,7 +232,6 @@ public class DialogAPI {
 
                     out.endObject();
                     out.flush();
-                    resultReturned = true;
                 }
             });
         }
