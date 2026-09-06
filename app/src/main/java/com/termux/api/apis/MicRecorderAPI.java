@@ -286,9 +286,9 @@ public class MicRecorderAPI {
                                                            MediaPlayerAPI.getTimeString(duration /
                                                                                         1000));
 
-                        } catch (IllegalStateException | IOException e) {
-                            Logger.logStackTraceWithMessage(LOG_TAG, "MediaRecorder error", e);
-                            result.error = "Recording error: " + e.getMessage();
+                        } catch (Throwable t) {
+                            Logger.logStackTraceWithMessage(LOG_TAG, "Recording start error", t);
+                            result.error = "Recording start error:\n" + Logger.getStackTraceString(t);
                         }
                     }
                 }
